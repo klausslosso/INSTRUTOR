@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal do Instrutor - CCP</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* --- Variáveis Globais (Modo Escuro / Dark Mode) --- */
+        :root {
+            --bg-body: #0f172a; --bg-card: #1e293b; --bg-input: #334155;
+            --text-main: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6;
+            --primary-hover: #2563eb; --secondary: #10b981; --danger: #ef4444;
+            --warning: #f59e0b; --border: #334155; --transition: all 0.3s ease;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', -apple-system, sans-serif; }
+        body { background-color: var(--bg-body); color: var(--text-main); margin: 0; line-height: 1.5; padding: 20px 15px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* --- Ecrã de Autenticação --- */
+        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-card { background: var(--bg-card); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 30px; }
+        header h1 { margin: 0; font-size: 22pt; color: var(--primary); }
+
+        /* --- Painéis e Cards --- */
+        .card { background: var(--bg-card); border-radius: 10px; padding: 25px; border: 1px solid var(--border); margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        h2 { font-size: 16pt; margin-top: 0; color: var(--primary); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        h3 { color: var(--text-main); font-size: 14pt; margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 10pt; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        input { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; font-size: 10pt; transition: var(--transition); }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+        
+        /* --- Botões --- */
+        .btn { padding: 12px 15px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 10pt; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: var(--secondary); color: white; }
+        .btn-secondary:hover { background: #0e9f6e; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-sm { padding: 6px 12px; font-size: 9pt; width: auto; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* --- Estrutura de Turmas --- */
+        .turma-row { background: var(--bg-body); border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .turma-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 250px; }
+        .turma-nome { font-size: 14pt; font-weight: bold; color: var(--primary); }
+        .turma-detalhes { font-size: 11pt; color: var(--text-main); }
+        
+        .turma-vagas { text-align: right; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; padding-right: 20px; border-right: 1px solid var(--border); margin-right: 20px; }
+        .turma-vagas-count { font-size: 16pt; font-weight: bold; }
+        .turma-vagas-label { font-size: 9pt; color: var(--text-muted); text-transform: uppercase; }
+
+        /* --- Tabelas de Alunos --- */
+        .styled-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10pt; }
+        .styled-table th { background: var(--bg-input); color: var(--primary); font-weight: bold; text-align: left; padding: 10px; border-bottom: 2px solid var(--border); }
+        .styled-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen">
+    <div class="login-card">
+        <h2 style="border:none; justify-content:center; color: var(--primary); font-size: 18pt; margin-bottom: 20px; padding: 0;">PORTAL DO INSTRUTOR</h2>
+        <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+            <label>E-mail de Acesso</label>
+            <input type="email" id="login-email" placeholder="O seu e-mail registado">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px; text-align: left;">
+            <label>Palavra-passe</label>
+            <input type="password" id="login-senha" placeholder="******">
+        </div>
+        <button id="btn-login-submit" class="btn btn-primary" style="width: 100%; padding: 12px;" onclick="realizarLogin()">Aceder ao Portal</button>
+    </div>
+</div>
+
+<div class="container" id="main-content" style="display: none;">
+    <header>
+        <h1>ÁREA DOCENTE - CCP</h1>
+        <p style="color: var(--text-muted); margin: 5px 0 0 0; font-weight: 600;">Instrutor(a): <span id="nome-instrutor-display" style="color: var(--secondary);"></span></p>
+        <button class="btn btn-danger btn-sm" style="margin-top: 15px;" onclick="encerrarSessao()">Terminar Sessão</button>
+    </header>
+
+    <div class="card" id="painel-turmas">
+        <h2>📚 As Minhas Turmas Ativas</h2>
+        <div id="lista-turmas-container">
+            <p style="text-align: center; color: var(--text-muted);">A carregar informações das turmas...</p>
+        </div>
+    </div>
+
+    <div class="card" id="painel-alunos-turma" style="display: none; border-left: 4px solid var(--secondary);">
+        <h3 id="titulo-gerenciamento-alunos">👥 Lista de Alunos</h3>
+        
+        <div style="overflow-x: auto;">
+            <table class="styled-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">Nº</th>
+                        <th>Nome do Aluno</th>
+                        <th>CPF</th>
+                        <th>Telefone</th>
+                        <th>E-mail</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-alunos-matriculados"></tbody>
+            </table>
+        </div>
+
+        <div style="text-align: right; margin-top: 15px;">
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('painel-alunos-turma').style.display='none'">Fechar Lista</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Configurações do Supabase
+    const supabaseUrl = 'https://qdmityjaqwvcesejsexh.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkbWl0eWphcXd2Y2VzZWpzZXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2ODU4NzAsImV4cCI6MjA5NDI2MTg3MH0.cqmB5B-lTaC1TaQwXuOlWjKjlnTufaGq6ndlm3K1uvI';
+    const supa = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let utilizadorAtual = null;
+    let nomeInstrutorValidado = "";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            const { data: { session }, error } = await supa.auth.getSession();
+            if (session && !error) {
+                utilizadorAtual = session.user;
+                iniciarSistema();
+            }
+        } catch (err) { console.error("Erro na verificação da sessão.", err); }
+    });
+
+    async function realizarLogin() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-senha').value;
+        if(!email || !password) { 
+            alert("Introduza o seu e-mail e palavra-passe."); 
+            return; 
+        }
+
+        const btnLogin = document.getElementById('btn-login-submit');
+        const textoOriginal = btnLogin.innerText;
+        btnLogin.innerText = "A validar credenciais...";
+        btnLogin.disabled = true;
+
+        try {
+            const { data, error } = await supa.auth.signInWithPassword({ email: email, password: password });
+            
+            if(error) { 
+                alert("Acesso recusado. Verifique as suas credenciais."); 
+                btnLogin.innerText = textoOriginal;
+                btnLogin.disabled = false;
+                return; 
+            }
+            
+            utilizadorAtual = data.user;
+            await iniciarSistema();
+
+        } catch (err) {
+            console.error("Erro de sistema:", err);
+            alert("Erro crítico ao processar o login: " + err.message);
+        } finally {
+            btnLogin.innerText = textoOriginal;
+            btnLogin.disabled = false;
+        }
+    }
+
+    async function iniciarSistema() {
+        try {
+            // 1. Verificar Nível de Acesso
+            const { data: perfilData, error: perfilError } = await supa
+                .from('perfis') 
+                .select('nivel_acesso')
+                .eq('id', utilizadorAtual.id)
+                .single();
+
+            if (perfilError || !perfilData || (perfilData.nivel_acesso !== 'Instrutor' && perfilData.nivel_acesso !== 'Admin')) {
+                alert("Acesso não autorizado. O seu perfil não possui privilégios de Instrutor.");
+                await supa.auth.signOut();
+                window.location.reload();
+                return;
+            }
+
+            // 2. Localizar Nome do Instrutor pelo E-mail
+            const { data: instrutorData, error: instError } = await supa
+                .from('instrutores')
+                .select('nome')
+                .eq('email', utilizadorAtual.email)
+                .single();
+
+            if (instError || !instrutorData) {
+                alert("O seu e-mail não está vinculado a um registo de docente na base de dados. Contacte a coordenação.");
+                await supa.auth.signOut();
+                window.location.reload();
+                return;
+            }
+
+            nomeInstrutorValidado = instrutorData.nome;
+            document.getElementById('nome-instrutor-display').innerText = nomeInstrutorValidado;
+
+            // 3. Liberação da Interface
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            
+            await carregarTurmasDoInstrutor();
+
+        } catch (err) {
+            console.error("Erro ao iniciar sessão:", err);
+            alert("Ocorreu uma falha na preparação do painel: " + err.message);
+        }
+    }
+
+    async function encerrarSessao() { 
+        await supa.auth.signOut(); 
+        window.location.reload(); 
+    }
+
+    async function carregarTurmasDoInstrutor() {
+        const container = document.getElementById('lista-turmas-container');
+        
+        // Dispara requisições em paralelo para buscar as turmas E todos os alunos matriculados
+        const [resTurmas, resAlunos] = await Promise.all([
+            supa.from('turmas').select('*').eq('instrutor', nomeInstrutorValidado).eq('status', 'Ativo').order('curso_nome'),
+            supa.from('alunos_ccp').select('cursos')
+        ]);
+
+        if (resTurmas.error || resAlunos.error) {
+            container.innerHTML = '<p style="color: var(--danger);">Falha de comunicação com a base de dados ao carregar turmas.</p>';
+            return;
+        }
+
+        const turmas = resTurmas.data;
+        const alunosGeral = resAlunos.data || [];
+
+        if (!turmas || turmas.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Não possui turmas ativas vinculadas ao seu nome no momento.</p>';
+            return;
+        }
+
+        let htmlFinal = '';
+
+        turmas.forEach(turma => {
+            // Conta os alunos matriculados nesta turma específica
+            const stringBuscaMatricula = `${turma.curso_nome} [${turma.identificador}]`;
+            let contagemMatriculados = 0;
+            alunosGeral.forEach(aluno => {
+                if (aluno.cursos && aluno.cursos.includes(stringBuscaMatricula)) contagemMatriculados++;
+            });
+
+            // Lógica de cores para a contagem de vagas
+            const limiteVagas = turma.vagas_limite || 0;
+            const corVagas = contagemMatriculados >= limiteVagas ? 'var(--danger)' : 'var(--secondary)';
+
+            htmlFinal += `
+            <div class="turma-row">
+                <div class="turma-info">
+                    <span class="turma-nome">${turma.curso_nome}</span>
+                    <span class="turma-detalhes">Identificação: <strong>${turma.identificador}</strong></span>
+                    <span class="turma-detalhes">Horário: ${turma.dia_semana} - ${turma.turno}</span>
+                </div>
+                
+                <div class="turma-vagas">
+                    <span class="turma-vagas-count" style="color: ${corVagas};">${contagemMatriculados} / ${limiteVagas}</span>
+                    <span class="turma-vagas-label">Ocupação</span>
+                </div>
+
+                <div style="display: flex; align-items: center;">
+                    <button class="btn btn-primary" onclick="verAlunos('${turma.curso_nome}', '${turma.identificador}')">Ver Lista de Alunos</button>
+                </div>
+            </div>`;
+        });
+
+        container.innerHTML = htmlFinal;
+    }
+
+    async function verAlunos(cursoNome, identificadorTurma) {
+        document.getElementById('titulo-gerenciamento-alunos').innerText = `👥 Lista de Alunos: ${cursoNome} [${identificadorTurma}]`;
+        document.getElementById('painel-alunos-turma').style.display = 'block';
+        
+        const tbody = document.getElementById('tbody-alunos-matriculados');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">A extrair dados da turma...</td></tr>';
+        
+        const stringBusca = `${cursoNome} [${identificadorTurma}]`;
+        
+        // Puxa os novos campos (telefone e email) do Supabase
+        const { data: alunos, error } = await supa
+            .from('alunos_ccp')
+            .select('cpf, nome, cursos, telefone, email')
+            .like('cursos', `%${stringBusca}%`)
+            .order('nome');
+        
+        if(error) { 
+            tbody.innerHTML = '<tr><td colspan="5">Erro ao buscar alunos da base de dados.</td></tr>'; 
+            return; 
+        }
+        
+        tbody.innerHTML = '';
+        
+        if(!alunos || alunos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Ainda não há alunos matriculados nesta turma.</td></tr>';
+            return;
+        }
+
+        let contador = 1;
+        alunos.forEach(aluno => {
+            if (aluno.cursos && aluno.cursos.includes(stringBusca)) {
+                tbody.innerHTML += `<tr>
+                    <td style="text-align: center; color: var(--text-muted);">${contador}</td>
+                    <td><strong>${aluno.nome}</strong></td>
+                    <td>${aluno.cpf || '-'}</td>
+                    <td>${aluno.telefone || '-'}</td>
+                    <td>${aluno.email || '-'}</td>
+                </tr>`;
+                contador++;
+            }
+        });
+
+        window.scrollTo({ top: document.getElementById('painel-alunos-turma').offsetTop, behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
