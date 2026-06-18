@@ -224,7 +224,7 @@
     async function carregarTurmasDoInstrutor() {
         const container = document.getElementById('lista-turmas-container');
         
-        // Dispara requisições em paralelo para buscar as turmas E todos os alunos matriculados
+        // Dispara requisições em paralelo para buscar as turmas e alunos
         const [resTurmas, resAlunos] = await Promise.all([
             supa.from('turmas').select('*').eq('instrutor', nomeInstrutorValidado).eq('status', 'Ativo').order('curso_nome'),
             supa.from('alunos_ccp').select('cursos')
@@ -246,14 +246,19 @@
         let htmlFinal = '';
 
         turmas.forEach(turma => {
-            // Conta os alunos matriculados nesta turma específica
             const stringBuscaMatricula = `${turma.curso_nome} [${turma.identificador}]`;
             let contagemMatriculados = 0;
+            
             alunosGeral.forEach(aluno => {
-                if (aluno.cursos && aluno.cursos.includes(stringBuscaMatricula)) contagemMatriculados++;
+                if (aluno.cursos) {
+                    // Separa os cursos e busca exatamente pela string da turma, o que ignora os (INATIVO)
+                    const cursosAluno = aluno.cursos.split(' | ').map(c => c.trim());
+                    if (cursosAluno.includes(stringBuscaMatricula)) {
+                        contagemMatriculados++;
+                    }
+                }
             });
 
-            // Lógica de cores para a contagem de vagas
             const limiteVagas = turma.vagas_limite || 0;
             const corVagas = contagemMatriculados >= limiteVagas ? 'var(--danger)' : 'var(--secondary)';
 
@@ -288,7 +293,6 @@
         
         const stringBusca = `${cursoNome} [${identificadorTurma}]`;
         
-        // Puxa os novos campos (telefone e email) do Supabase
         const { data: alunos, error } = await supa
             .from('alunos_ccp')
             .select('cpf, nome, cursos, telefone, email')
@@ -308,18 +312,29 @@
         }
 
         let contador = 1;
+        let totalAtivosRenderizados = 0;
+
         alunos.forEach(aluno => {
-            if (aluno.cursos && aluno.cursos.includes(stringBusca)) {
-                tbody.innerHTML += `<tr>
-                    <td style="text-align: center; color: var(--text-muted);">${contador}</td>
-                    <td><strong>${aluno.nome}</strong></td>
-                    <td>${aluno.cpf || '-'}</td>
-                    <td>${aluno.telefone || '-'}</td>
-                    <td>${aluno.email || '-'}</td>
-                </tr>`;
-                contador++;
+            if (aluno.cursos) {
+                // Quebra a string de cursos pelo separador e obriga a correspondência exata para montar a tabela
+                const cursosArray = aluno.cursos.split(' | ').map(c => c.trim());
+                if (cursosArray.includes(stringBusca)) {
+                    tbody.innerHTML += `<tr>
+                        <td style="text-align: center; color: var(--text-muted);">${contador}</td>
+                        <td><strong>${aluno.nome}</strong></td>
+                        <td>${aluno.cpf || '-'}</td>
+                        <td>${aluno.telefone || '-'}</td>
+                        <td>${aluno.email || '-'}</td>
+                    </tr>`;
+                    contador++;
+                    totalAtivosRenderizados++;
+                }
             }
         });
+
+        if (totalAtivosRenderizados === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nenhum aluno ativo nesta turma no momento.</td></tr>';
+        }
 
         window.scrollTo({ top: document.getElementById('painel-alunos-turma').offsetTop, behavior: 'smooth' });
     }
