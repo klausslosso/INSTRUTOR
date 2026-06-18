@@ -30,10 +30,11 @@
         h2 { font-size: 16pt; margin-top: 0; color: var(--primary); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
         h3 { color: var(--text-main); font-size: 14pt; margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
 
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 10pt; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        input, select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; font-size: 10pt; transition: var(--transition); }
-        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+        input, select, textarea { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; font-size: 10pt; transition: var(--transition); }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
         
         /* --- Botões --- */
         .btn { padding: 12px 15px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 10pt; }
@@ -104,10 +105,10 @@
     <div class="card" id="painel-gestao-turma" style="display: none; border-left: 4px solid var(--warning);">
         <h3 id="titulo-gestao-turma">⚙️ Gestão da Turma</h3>
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-            <button class="btn btn-primary btn-sm" onclick="mostrarListaAlunos()">👥 Lista de Alunos</button>
+            <button class="btn btn-primary btn-sm" onclick="mostrarListaAlunos()">👥 Informações de Alunos</button>
             <button class="btn btn-secondary btn-sm" onclick="mostrarPainelPresencas()">✅ Dar Presença</button>
-            <button class="btn btn-warning btn-sm" onclick="alert('Módulo de Notas em desenvolvimento.')">📝 Notas</button>
-            <button class="btn btn-danger btn-sm" onclick="alert('Módulo de Diário Eletrônico em desenvolvimento.')">📘 Diário Eletrônico</button>
+            <button class="btn btn-warning btn-sm" onclick="mostrarPainelAvaliacoes()">📝 Avaliações</button>
+            <button class="btn btn-danger btn-sm" onclick="mostrarPainelPragmatico()">📘 Conteúdo Pragmático</button>
         </div>
         
         <div id="conteudo-lista-alunos" style="display: none;">
@@ -117,9 +118,9 @@
                         <tr>
                             <th style="width: 50px; text-align: center;">Nº</th>
                             <th>Nome do Aluno</th>
-                            <th>CPF</th>
                             <th>Telefone</th>
-                            <th>E-mail</th>
+                            <th style="text-align: center;">Frequência</th>
+                            <th style="text-align: center;">Média</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-alunos-matriculados"></tbody>
@@ -151,6 +152,76 @@
             </div>
         </div>
 
+        <div id="conteudo-avaliacoes" style="display: none;">
+            <div style="border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-top: 0; color: var(--primary);">Criar Nova Avaliação</h4>
+                <div class="form-grid" style="align-items: end;">
+                    <div class="form-group">
+                        <label>Data da Avaliação</label>
+                        <select id="nova-aval-data"><option value="">Aguarde...</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="nova-aval-tipo">
+                            <option value="Teórica">Teórica</option>
+                            <option value="Prática">Prática</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Máximo (0 a 100)</label>
+                        <input type="number" id="nova-aval-valor" min="1" max="100" value="100">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="criarAvaliacao()">Criar Avaliação</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border); padding-top: 15px;">
+                <h4 style="margin-top: 0; color: var(--secondary);">Lançamento de Notas</h4>
+                <div class="form-group" style="max-width: 400px; margin-bottom: 15px;">
+                    <label>Selecione a Avaliação</label>
+                    <select id="select-avaliacao" onchange="carregarLancamentoNotas(this.value)">
+                        <option value="">A carregar avaliações...</option>
+                    </select>
+                </div>
+                
+                <div id="area-notas" style="display: none;">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Aluno</th>
+                                <th style="width: 250px; text-align: center;">Nota / Frequência</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-notas"></tbody>
+                    </table>
+                    <div style="text-align: right; margin-top: 15px;">
+                        <button class="btn btn-secondary" id="btn-salvar-notas" onclick="salvarNotas()">Gravar Notas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="conteudo-pragmatico" style="display: none;">
+            <div class="form-group" style="max-width: 300px; margin-bottom: 15px;">
+                <label>Selecione a Data da Aula</label>
+                <select id="select-data-pragmatico" onchange="carregarFormularioPragmatico(this.value)">
+                    <option value="">Aguarde o carregamento...</option>
+                </select>
+            </div>
+            
+            <div id="area-form-pragmatico" style="display: none;">
+                <div class="form-group">
+                    <label>Conteúdo Ministrado na Aula</label>
+                    <textarea id="texto-pragmatico" rows="5" placeholder="Descreva o conteúdo dado neste dia..." style="resize: vertical;"></textarea>
+                </div>
+                <div style="text-align: right; margin-top: 15px;">
+                    <button class="btn btn-secondary" id="btn-salvar-pragmatico" onclick="salvarPragmatico()">Gravar Conteúdo Pragmático</button>
+                </div>
+            </div>
+        </div>
+
         <div style="text-align: right; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">
             <button class="btn btn-danger btn-sm" onclick="fecharGestaoTurma()">Fechar Gestão</button>
         </div>
@@ -167,6 +238,7 @@
     
     let turmaAtiva = null;
     let alunosTurmaAtiva = [];
+    let avaliacoesTurmaAtiva = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
         try {
@@ -335,6 +407,8 @@
         
         document.getElementById('conteudo-lista-alunos').style.display = 'none';
         document.getElementById('conteudo-presencas').style.display = 'none';
+        document.getElementById('conteudo-avaliacoes').style.display = 'none';
+        document.getElementById('conteudo-pragmatico').style.display = 'none';
         
         window.scrollTo({ top: document.getElementById('painel-gestao-turma').offsetTop, behavior: 'smooth' });
 
@@ -360,28 +434,99 @@
         document.getElementById('painel-gestao-turma').style.display = 'none';
         turmaAtiva = null;
         alunosTurmaAtiva = [];
+        avaliacoesTurmaAtiva = [];
     }
 
-    function mostrarListaAlunos() {
+    async function mostrarListaAlunos() {
         document.getElementById('conteudo-lista-alunos').style.display = 'block';
         document.getElementById('conteudo-presencas').style.display = 'none';
+        document.getElementById('conteudo-avaliacoes').style.display = 'none';
+        document.getElementById('conteudo-pragmatico').style.display = 'none';
 
         const tbody = document.getElementById('tbody-alunos-matriculados');
-        tbody.innerHTML = '';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">A calcular frequências e médias...</td></tr>';
         
         if(alunosTurmaAtiva.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nenhum aluno ativo nesta turma no momento.</td></tr>';
             return;
         }
 
+        const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
+
+        // 1. Busca dados para cálculo de Frequência
+        const { data: presencas } = await supa.from('presencas').select('aluno_cpf, status, data_aula').eq('turma_identificador', stringBusca);
+        let totalAulas = 0;
+        let presencasAluno = {};
+        
+        if (presencas) {
+            const datasUnicas = [...new Set(presencas.map(p => p.data_aula))];
+            totalAulas = datasUnicas.length;
+            presencas.forEach(p => {
+                if(!presencasAluno[p.aluno_cpf]) presencasAluno[p.aluno_cpf] = 0;
+                // Considera FJ como presença positiva conforme solicitado
+                if(['P', 'A', 'SE', 'FJ'].includes(p.status)) {
+                    presencasAluno[p.aluno_cpf]++;
+                }
+            });
+        }
+
+        // 2. Busca dados para cálculo da Média das Avaliações
+        const { data: avaliacoes } = await supa.from('avaliacoes').select('id').eq('turma_identificador', stringBusca);
+        let mediaAluno = {};
+        
+        if (avaliacoes && avaliacoes.length > 0) {
+            const avalIds = avaliacoes.map(a => a.id);
+            const { data: notas } = await supa.from('notas_avaliacoes').select('avaliacao_id, aluno_cpf, nota, faltou').in('avaliacao_id', avalIds);
+            
+            if (notas) {
+                let alunoNotas = {};
+                const avaliacoesLancadas = [...new Set(notas.map(n => n.avaliacao_id))].length;
+                
+                notas.forEach(n => {
+                    if(!alunoNotas[n.aluno_cpf]) alunoNotas[n.aluno_cpf] = { soma: 0 };
+                    let valorNota = n.faltou || !n.nota ? 0 : parseFloat(n.nota);
+                    alunoNotas[n.aluno_cpf].soma += valorNota;
+                });
+
+                for (let cpf in alunoNotas) {
+                    mediaAluno[cpf] = avaliacoesLancadas > 0 ? (alunoNotas[cpf].soma / avaliacoesLancadas) : 0;
+                }
+            }
+        }
+
+        tbody.innerHTML = '';
         let contador = 1;
+        
         alunosTurmaAtiva.forEach(aluno => {
+            let freqStr = '-';
+            let corFreq = 'var(--text-main)';
+            if (totalAulas > 0) {
+                const pres = presencasAluno[aluno.cpf] || 0;
+                const freq = Math.round((pres / totalAulas) * 100);
+                freqStr = freq + '%';
+                
+                if (freq < 75) corFreq = 'var(--danger)';
+                else if (freq === 75) corFreq = 'var(--primary)';
+                else corFreq = 'var(--secondary)';
+            }
+
+            let mediaStr = '-';
+            let corMedia = 'var(--text-main)';
+            if (mediaAluno[aluno.cpf] !== undefined) {
+                const med = mediaAluno[aluno.cpf];
+                mediaStr = med.toFixed(1);
+                
+                if (med < 50) corMedia = 'var(--danger)';
+                else if (med === 50) corMedia = 'var(--primary)';
+                else corMedia = 'var(--secondary)';
+            }
+
             tbody.innerHTML += `<tr>
                 <td style="text-align: center; color: var(--text-muted);">${contador}</td>
                 <td><strong>${aluno.nome}</strong></td>
-                <td>${aluno.cpf || '-'}</td>
                 <td>${aluno.telefone || '-'}</td>
-                <td>${aluno.email || '-'}</td>
+                <td style="text-align: center; font-weight: bold; color: ${corFreq};">${freqStr}</td>
+                <td style="text-align: center; font-weight: bold; color: ${corMedia};">${mediaStr}</td>
             </tr>`;
             contador++;
         });
@@ -390,6 +535,8 @@
     async function mostrarPainelPresencas() {
         document.getElementById('conteudo-lista-alunos').style.display = 'none';
         document.getElementById('conteudo-presencas').style.display = 'block';
+        document.getElementById('conteudo-avaliacoes').style.display = 'none';
+        document.getElementById('conteudo-pragmatico').style.display = 'none';
         document.getElementById('area-chamada').style.display = 'none';
 
         const selectDatas = document.getElementById('select-data-aula');
@@ -403,7 +550,6 @@
 
         const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
         
-        // Busca datas que já possuem presença gravada para não listá-las novamente
         const { data: datasGravadas, error } = await supa
             .from('presencas')
             .select('data_aula')
@@ -422,7 +568,6 @@
         datasValidas.forEach(data => {
             const isoDate = data.toISOString().split('T')[0];
             
-            // Só exibe se a data não constar no banco como já gravada
             if (!datasOcultas.includes(isoDate)) {
                 const displayDate = `${String(data.getUTCDate()).padStart(2,'0')}/${String(data.getUTCMonth()+1).padStart(2,'0')}/${data.getUTCFullYear()}`;
                 selectDatas.innerHTML += `<option value="${isoDate}">${displayDate}</option>`;
@@ -459,6 +604,25 @@
         return datas;
     }
 
+    function calcularTodasDatasAula(dataInicioStr, dataFimStr, diaSemana) {
+        const diasMapa = { "Domingo": 0, "Segunda": 1, "Terça": 2, "Quarta": 3, "Quinta": 4, "Sexta": 5, "Sábado": 6 };
+        const diaAlvo = diasMapa[diaSemana];
+        
+        let atual = new Date(dataInicioStr);
+        atual.setUTCHours(12, 0, 0, 0); 
+        const fim = new Date(dataFimStr);
+        fim.setUTCHours(12, 0, 0, 0);
+
+        let datas = [];
+        while (atual <= fim) {
+            if (atual.getUTCDay() === diaAlvo) {
+                datas.push(new Date(atual));
+            }
+            atual.setUTCDate(atual.getUTCDate() + 1);
+        }
+        return datas;
+    }
+
     async function carregarChamadaData(dataSelecionada) {
         if(!dataSelecionada) {
             document.getElementById('area-chamada').style.display = 'none';
@@ -474,7 +638,6 @@
             return;
         }
 
-        // Força "Presente" (P) como padrão para todos
         alunosTurmaAtiva.forEach((aluno) => {
             tbody.innerHTML += `
             <tr>
@@ -520,7 +683,6 @@
         });
 
         try {
-            // Garante que não haja duplicidade deletando caso algum registro fantasma exista
             await supa.from('presencas')
                 .delete()
                 .eq('turma_identificador', stringBusca)
@@ -533,7 +695,6 @@
 
             alert("Lista de presenças gravada com sucesso!");
             
-            // Oculta a área de chamada e recarrega as opções de datas (removendo a data gravada)
             document.getElementById('area-chamada').style.display = 'none';
             await mostrarPainelPresencas();
 
@@ -541,6 +702,307 @@
             alert("Ocorreu um erro ao gravar as presenças: " + err.message);
         } finally {
             btn.innerText = "Gravar Presenças no Diário";
+            btn.disabled = false;
+        }
+    }
+
+    // --- MÓDULO DE AVALIAÇÕES ---
+
+    async function mostrarPainelAvaliacoes() {
+        document.getElementById('conteudo-lista-alunos').style.display = 'none';
+        document.getElementById('conteudo-presencas').style.display = 'none';
+        document.getElementById('conteudo-pragmatico').style.display = 'none';
+        document.getElementById('conteudo-avaliacoes').style.display = 'block';
+        document.getElementById('area-notas').style.display = 'none';
+
+        const selectData = document.getElementById('nova-aval-data');
+        selectData.innerHTML = '<option value="">Selecione a data...</option>';
+
+        if (!turmaAtiva.data_inicio || !turmaAtiva.data_fim) {
+            selectData.innerHTML = '<option value="">Datas não configuradas</option>';
+        } else {
+            const todasDatas = calcularTodasDatasAula(turmaAtiva.data_inicio, turmaAtiva.data_fim, turmaAtiva.dia_semana);
+            todasDatas.forEach(data => {
+                const isoDate = data.toISOString().split('T')[0];
+                const displayDate = `${String(data.getUTCDate()).padStart(2,'0')}/${String(data.getUTCMonth()+1).padStart(2,'0')}/${data.getUTCFullYear()}`;
+                selectData.innerHTML += `<option value="${isoDate}">${displayDate}</option>`;
+            });
+        }
+
+        await carregarAvaliacoesDaTurma();
+    }
+
+    async function criarAvaliacao() {
+        const dataAval = document.getElementById('nova-aval-data').value;
+        const tipo = document.getElementById('nova-aval-tipo').value;
+        const valor = document.getElementById('nova-aval-valor').value;
+
+        if(!dataAval || !tipo || !valor) return alert("Preencha todos os campos para criar a avaliação.");
+        if(valor <= 0 || valor > 100) return alert("O valor máximo deve estar compreendido entre 1 e 100.");
+
+        const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
+
+        const { error } = await supa.from('avaliacoes').insert({
+            turma_identificador: stringBusca,
+            data_avaliacao: dataAval,
+            tipo: tipo,
+            valor_maximo: valor
+        });
+
+        if(error) return alert("Erro ao criar avaliação: " + error.message);
+
+        alert("Avaliação configurada com sucesso!");
+        document.getElementById('nova-aval-data').value = '';
+        document.getElementById('nova-aval-valor').value = '100';
+        
+        await carregarAvaliacoesDaTurma();
+    }
+
+    async function carregarAvaliacoesDaTurma() {
+        const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
+        
+        const { data: avaliacoes, error } = await supa.from('avaliacoes')
+            .select('*')
+            .eq('turma_identificador', stringBusca)
+            .order('data_avaliacao');
+
+        const selectAval = document.getElementById('select-avaliacao');
+        selectAval.innerHTML = '<option value="">Selecione a avaliação registada...</option>';
+
+        if(error || !avaliacoes) return;
+
+        avaliacoesTurmaAtiva = avaliacoes || [];
+        const avalIds = avaliacoesTurmaAtiva.map(a => a.id);
+
+        let avaliacoesOcultas = [];
+        if (avalIds.length > 0) {
+            const { data: notasGravadas } = await supa.from('notas_avaliacoes')
+                .select('avaliacao_id')
+                .in('avaliacao_id', avalIds);
+            
+            if (notasGravadas) {
+                avaliacoesOcultas = [...new Set(notasGravadas.map(n => n.avaliacao_id))];
+            }
+        }
+
+        let totalDisponiveis = 0;
+        
+        avaliacoesTurmaAtiva.forEach(av => {
+            if (!avaliacoesOcultas.includes(av.id)) {
+                const parts = av.data_avaliacao.split('-');
+                const displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                const label = `${displayDate} - ${av.tipo} (Vale ${av.valor_maximo})`;
+                selectAval.innerHTML += `<option value="${av.id}">${label}</option>`;
+                totalDisponiveis++;
+            }
+        });
+        
+        if (totalDisponiveis === 0 && avaliacoesTurmaAtiva.length > 0) {
+            selectAval.innerHTML = '<option value="">Todas as avaliações já foram lançadas.</option>';
+        }
+        
+        document.getElementById('area-notas').style.display = 'none';
+    }
+
+    async function carregarLancamentoNotas(avaliacaoId) {
+        if(!avaliacaoId) {
+            document.getElementById('area-notas').style.display = 'none';
+            return;
+        }
+
+        const tbody = document.getElementById('tbody-notas');
+        tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color: var(--text-muted);">A verificar banco de dados...</td></tr>';
+        document.getElementById('area-notas').style.display = 'block';
+
+        const avaliacao = avaliacoesTurmaAtiva.find(a => a.id === avaliacaoId);
+
+        tbody.innerHTML = '';
+        if(alunosTurmaAtiva.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Sem alunos nesta turma.</td></tr>';
+            return;
+        }
+
+        alunosTurmaAtiva.forEach((aluno) => {
+            tbody.innerHTML += `
+            <tr>
+                <td><strong>${aluno.nome}</strong><br><span style="font-size: 8pt; color: var(--text-muted);">${aluno.cpf}</span></td>
+                <td>
+                    <div style="display: flex; gap: 15px; align-items: center; justify-content: center;">
+                        <input type="number" id="nota-${aluno.cpf}" min="0" max="${avaliacao.valor_maximo}" placeholder="0 a ${avaliacao.valor_maximo}" style="width: 100px; text-align:center;">
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:9pt; color:var(--danger); font-weight:bold;">
+                            <input type="checkbox" id="falta-${aluno.cpf}" onchange="toggleFaltaAvaliacao('${aluno.cpf}')"> Faltou
+                        </label>
+                    </div>
+                </td>
+            </tr>`;
+        });
+    }
+
+    function toggleFaltaAvaliacao(cpf) {
+        const chk = document.getElementById(`falta-${cpf}`);
+        const inp = document.getElementById(`nota-${cpf}`);
+        if(chk.checked) {
+            inp.value = '';
+            inp.disabled = true;
+        } else {
+            inp.disabled = false;
+        }
+    }
+
+    async function salvarNotas() {
+        const avaliacaoId = document.getElementById('select-avaliacao').value;
+        if(!avaliacaoId) return alert("Selecione uma avaliação na lista.");
+
+        const avaliacao = avaliacoesTurmaAtiva.find(a => a.id === avaliacaoId);
+        const btn = document.getElementById('btn-salvar-notas');
+        btn.innerText = "A gravar notas...";
+        btn.disabled = true;
+
+        const payloads = [];
+        let validacaoOk = true;
+
+        alunosTurmaAtiva.forEach(aluno => {
+            const inpFalta = document.getElementById(`falta-${aluno.cpf}`);
+            const inpNota = document.getElementById(`nota-${aluno.cpf}`);
+            
+            let nota = null;
+            if(!inpFalta.checked) {
+                if(inpNota.value !== '') {
+                    nota = parseFloat(inpNota.value);
+                    if(nota < 0 || nota > avaliacao.valor_maximo) {
+                        validacaoOk = false;
+                        alert(`A nota inserida para ${aluno.nome} é inválida. O valor deve estar entre 0 e ${avaliacao.valor_maximo}.`);
+                    }
+                }
+            }
+
+            if(inpFalta.checked || inpNota.value !== '') {
+                 payloads.push({
+                    avaliacao_id: avaliacaoId,
+                    aluno_cpf: aluno.cpf,
+                    nota: inpFalta.checked ? null : nota,
+                    faltou: inpFalta.checked
+                });
+            }
+        });
+
+        if(!validacaoOk) {
+            btn.innerText = "Gravar Notas";
+            btn.disabled = false;
+            return;
+        }
+
+        try {
+            await supa.from('notas_avaliacoes').delete().eq('avaliacao_id', avaliacaoId);
+
+            if(payloads.length > 0) {
+                const { error } = await supa.from('notas_avaliacoes').insert(payloads);
+                if(error) throw error;
+            }
+
+            alert("Pauta de notas registada com sucesso!");
+            
+            document.getElementById('area-notas').style.display = 'none';
+            await carregarAvaliacoesDaTurma(); 
+
+        } catch (err) {
+            alert("Erro de comunicação ao gravar notas: " + err.message);
+        } finally {
+            btn.innerText = "Gravar Notas";
+            btn.disabled = false;
+        }
+    }
+
+    // --- MÓDULO CONTEÚDO PRAGMÁTICO ---
+
+    async function mostrarPainelPragmatico() {
+        document.getElementById('conteudo-lista-alunos').style.display = 'none';
+        document.getElementById('conteudo-presencas').style.display = 'none';
+        document.getElementById('conteudo-avaliacoes').style.display = 'none';
+        document.getElementById('conteudo-pragmatico').style.display = 'block';
+        document.getElementById('area-form-pragmatico').style.display = 'none';
+
+        const selectDatas = document.getElementById('select-data-pragmatico');
+        selectDatas.innerHTML = '<option value="">A pesquisar dados registados...</option>';
+
+        if (!turmaAtiva.data_inicio || !turmaAtiva.data_fim) {
+            selectDatas.innerHTML = '<option value="">Datas não configuradas</option>';
+            alert("Aviso: A coordenação ainda não definiu a Data de Início e Término para esta turma.");
+            return;
+        }
+
+        const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
+        
+        const { data: datasGravadas, error } = await supa
+            .from('conteudo_pragmatico')
+            .select('data_aula')
+            .eq('turma_identificador', stringBusca);
+            
+        let datasOcultas = [];
+        if (!error && datasGravadas) {
+            datasOcultas = [...new Set(datasGravadas.map(p => p.data_aula))];
+        }
+
+        const datasValidas = calcularDatasAula(turmaAtiva.data_inicio, turmaAtiva.data_fim, turmaAtiva.dia_semana);
+        
+        selectDatas.innerHTML = '<option value="">Selecione a data...</option>';
+        let totalDisponiveis = 0;
+
+        datasValidas.forEach(data => {
+            const isoDate = data.toISOString().split('T')[0];
+            
+            if (!datasOcultas.includes(isoDate)) {
+                const displayDate = `${String(data.getUTCDate()).padStart(2,'0')}/${String(data.getUTCMonth()+1).padStart(2,'0')}/${data.getUTCFullYear()}`;
+                selectDatas.innerHTML += `<option value="${isoDate}">${displayDate}</option>`;
+                totalDisponiveis++;
+            }
+        });
+
+        if (totalDisponiveis === 0) {
+            selectDatas.innerHTML = '<option value="">Todas as aulas realizadas já têm conteúdo registado.</option>';
+        }
+    }
+
+    function carregarFormularioPragmatico(dataSelecionada) {
+        if(!dataSelecionada) {
+            document.getElementById('area-form-pragmatico').style.display = 'none';
+            return;
+        }
+        document.getElementById('texto-pragmatico').value = '';
+        document.getElementById('area-form-pragmatico').style.display = 'block';
+    }
+
+    async function salvarPragmatico() {
+        const dataSelecionada = document.getElementById('select-data-pragmatico').value;
+        const texto = document.getElementById('texto-pragmatico').value.trim();
+
+        if(!dataSelecionada) return alert("Selecione uma data.");
+        if(!texto) return alert("Por favor, descreva o conteúdo ministrado na aula antes de gravar.");
+
+        const btn = document.getElementById('btn-salvar-pragmatico');
+        btn.innerText = "A gravar...";
+        btn.disabled = true;
+
+        const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
+
+        try {
+            const { error } = await supa.from('conteudo_pragmatico').insert({
+                turma_identificador: stringBusca,
+                data_aula: dataSelecionada,
+                conteudo: texto
+            });
+
+            if(error) throw error;
+
+            alert("Conteúdo pragmático registado com sucesso!");
+            
+            document.getElementById('area-form-pragmatico').style.display = 'none';
+            await mostrarPainelPragmatico();
+
+        } catch (err) {
+            alert("Ocorreu um erro ao gravar o conteúdo: " + err.message);
+        } finally {
+            btn.innerText = "Gravar Conteúdo Pragmático";
             btn.disabled = false;
         }
     }
