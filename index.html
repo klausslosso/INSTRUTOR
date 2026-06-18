@@ -32,8 +32,8 @@
 
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 10pt; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        input { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; font-size: 10pt; transition: var(--transition); }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+        input, select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; font-size: 10pt; transition: var(--transition); }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
         
         /* --- Botões --- */
         .btn { padding: 12px 15px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 10pt; }
@@ -43,6 +43,8 @@
         .btn-secondary:hover { background: #0e9f6e; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-warning:hover { background: #d97706; }
         .btn-sm { padding: 6px 12px; font-size: 9pt; width: auto; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -60,6 +62,11 @@
         .styled-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10pt; }
         .styled-table th { background: var(--bg-input); color: var(--primary); font-weight: bold; text-align: left; padding: 10px; border-bottom: 2px solid var(--border); }
         .styled-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+
+        /* --- Layout de Radio Buttons para Presença --- */
+        .radio-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .radio-group label { display: flex; align-items: center; gap: 4px; font-size: 9pt; cursor: pointer; text-transform: none; color: var(--text-main); font-weight: normal; padding: 4px; border-radius: 4px; transition: background 0.2s;}
+        .radio-group label:hover { background: var(--bg-input); }
     </style>
 </head>
 <body>
@@ -76,6 +83,7 @@
             <input type="password" id="login-senha" placeholder="******">
         </div>
         <button id="btn-login-submit" class="btn btn-primary" style="width: 100%; padding: 12px;" onclick="realizarLogin()">Aceder ao Portal</button>
+        <p id="login-error-msg" style="color: var(--danger); font-size: 9pt; margin-top: 15px; display: none;"></p>
     </div>
 </div>
 
@@ -93,54 +101,97 @@
         </div>
     </div>
 
-    <div class="card" id="painel-alunos-turma" style="display: none; border-left: 4px solid var(--secondary);">
-        <h3 id="titulo-gerenciamento-alunos">👥 Lista de Alunos</h3>
+    <div class="card" id="painel-gestao-turma" style="display: none; border-left: 4px solid var(--warning);">
+        <h3 id="titulo-gestao-turma">⚙️ Gestão da Turma</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button class="btn btn-primary btn-sm" onclick="mostrarListaAlunos()">👥 Lista de Alunos</button>
+            <button class="btn btn-secondary btn-sm" onclick="mostrarPainelPresencas()">✅ Dar Presença</button>
+            <button class="btn btn-warning btn-sm" onclick="alert('Módulo de Notas em desenvolvimento.')">📝 Notas</button>
+            <button class="btn btn-danger btn-sm" onclick="alert('Módulo de Diário Eletrônico em desenvolvimento.')">📘 Diário Eletrônico</button>
+        </div>
         
-        <div style="overflow-x: auto;">
-            <table class="styled-table">
-                <thead>
-                    <tr>
-                        <th style="width: 50px; text-align: center;">Nº</th>
-                        <th>Nome do Aluno</th>
-                        <th>CPF</th>
-                        <th>Telefone</th>
-                        <th>E-mail</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody-alunos-matriculados"></tbody>
-            </table>
+        <div id="conteudo-lista-alunos" style="display: none;">
+            <div style="overflow-x: auto;">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px; text-align: center;">Nº</th>
+                            <th>Nome do Aluno</th>
+                            <th>CPF</th>
+                            <th>Telefone</th>
+                            <th>E-mail</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-alunos-matriculados"></tbody>
+                </table>
+            </div>
         </div>
 
-        <div style="text-align: right; margin-top: 15px;">
-            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('painel-alunos-turma').style.display='none'">Fechar Lista</button>
+        <div id="conteudo-presencas" style="display: none;">
+            <div class="form-group" style="max-width: 300px; margin-bottom: 15px;">
+                <label>Selecione a Data da Aula</label>
+                <select id="select-data-aula" onchange="carregarChamadaData(this.value)">
+                    <option value="">Aguarde o carregamento...</option>
+                </select>
+            </div>
+            
+            <div id="area-chamada" style="display: none;">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>Nome do Aluno</th>
+                            <th style="width: 450px; text-align: center;">Registro de Presença</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-chamada"></tbody>
+                </table>
+                <div style="text-align: right; margin-top: 15px;">
+                    <button class="btn btn-secondary" id="btn-salvar-chamada" onclick="salvarChamada()">Gravar Presenças no Diário</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">
+            <button class="btn btn-danger btn-sm" onclick="fecharGestaoTurma()">Fechar Gestão</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Configurações do Supabase
     const supabaseUrl = 'https://qdmityjaqwvcesejsexh.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkbWl0eWphcXd2Y2VzZWpzZXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2ODU4NzAsImV4cCI6MjA5NDI2MTg3MH0.cqmB5B-lTaC1TaQwXuOlWjKjlnTufaGq6ndlm3K1uvI';
     const supa = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     let utilizadorAtual = null;
     let nomeInstrutorValidado = "";
+    
+    let turmaAtiva = null;
+    let alunosTurmaAtiva = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
         try {
             const { data: { session }, error } = await supa.auth.getSession();
             if (session && !error) {
                 utilizadorAtual = session.user;
-                iniciarSistema();
+                await iniciarSistema();
             }
         } catch (err) { console.error("Erro na verificação da sessão.", err); }
     });
 
+    function mostrarErroLogin(msg) {
+        const pMsg = document.getElementById('login-error-msg');
+        pMsg.innerText = msg;
+        pMsg.style.display = 'block';
+    }
+
     async function realizarLogin() {
         const email = document.getElementById('login-email').value.trim();
         const password = document.getElementById('login-senha').value;
+        const pMsg = document.getElementById('login-error-msg');
+        pMsg.style.display = 'none';
+
         if(!email || !password) { 
-            alert("Introduza o seu e-mail e palavra-passe."); 
+            mostrarErroLogin("Introduza o seu e-mail e palavra-passe."); 
             return; 
         }
 
@@ -153,7 +204,7 @@
             const { data, error } = await supa.auth.signInWithPassword({ email: email, password: password });
             
             if(error) { 
-                alert("Acesso recusado. Verifique as suas credenciais."); 
+                mostrarErroLogin("Acesso recusado. Verifique as suas credenciais."); 
                 btnLogin.innerText = textoOriginal;
                 btnLogin.disabled = false;
                 return; 
@@ -164,7 +215,7 @@
 
         } catch (err) {
             console.error("Erro de sistema:", err);
-            alert("Erro crítico ao processar o login: " + err.message);
+            mostrarErroLogin("Erro crítico ao processar o login: " + err.message);
         } finally {
             btnLogin.innerText = textoOriginal;
             btnLogin.disabled = false;
@@ -173,7 +224,8 @@
 
     async function iniciarSistema() {
         try {
-            // 1. Verificar Nível de Acesso
+            document.getElementById('login-error-msg').style.display = 'none';
+
             const { data: perfilData, error: perfilError } = await supa
                 .from('perfis') 
                 .select('nivel_acesso')
@@ -181,13 +233,9 @@
                 .single();
 
             if (perfilError || !perfilData || (perfilData.nivel_acesso !== 'Instrutor' && perfilData.nivel_acesso !== 'Admin')) {
-                alert("Acesso não autorizado. O seu perfil não possui privilégios de Instrutor.");
-                await supa.auth.signOut();
-                window.location.reload();
-                return;
+                throw new Error("Acesso não autorizado. O seu perfil não possui privilégios de Instrutor.");
             }
 
-            // 2. Localizar Nome do Instrutor pelo E-mail
             const { data: instrutorData, error: instError } = await supa
                 .from('instrutores')
                 .select('nome')
@@ -195,24 +243,21 @@
                 .single();
 
             if (instError || !instrutorData) {
-                alert("O seu e-mail não está vinculado a um registo de docente na base de dados. Contacte a coordenação.");
-                await supa.auth.signOut();
-                window.location.reload();
-                return;
+                throw new Error("O seu e-mail não está vinculado a um registo de docente na base de dados.");
             }
 
             nomeInstrutorValidado = instrutorData.nome;
             document.getElementById('nome-instrutor-display').innerText = nomeInstrutorValidado;
 
-            // 3. Liberação da Interface
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
             
             await carregarTurmasDoInstrutor();
 
         } catch (err) {
-            console.error("Erro ao iniciar sessão:", err);
-            alert("Ocorreu uma falha na preparação do painel: " + err.message);
+            mostrarErroLogin(err.message);
+            if (utilizadorAtual) await supa.auth.signOut();
+            utilizadorAtual = null;
         }
     }
 
@@ -224,7 +269,6 @@
     async function carregarTurmasDoInstrutor() {
         const container = document.getElementById('lista-turmas-container');
         
-        // Dispara requisições em paralelo para buscar as turmas e alunos
         const [resTurmas, resAlunos] = await Promise.all([
             supa.from('turmas').select('*').eq('instrutor', nomeInstrutorValidado).eq('status', 'Ativo').order('curso_nome'),
             supa.from('alunos_ccp').select('cursos')
@@ -251,7 +295,6 @@
             
             alunosGeral.forEach(aluno => {
                 if (aluno.cursos) {
-                    // Separa os cursos e busca exatamente pela string da turma, o que ignora os (INATIVO)
                     const cursosAluno = aluno.cursos.split(' | ').map(c => c.trim());
                     if (cursosAluno.includes(stringBuscaMatricula)) {
                         contagemMatriculados++;
@@ -261,6 +304,7 @@
 
             const limiteVagas = turma.vagas_limite || 0;
             const corVagas = contagemMatriculados >= limiteVagas ? 'var(--danger)' : 'var(--secondary)';
+            const turmaBase64 = btoa(encodeURIComponent(JSON.stringify(turma)));
 
             htmlFinal += `
             <div class="turma-row">
@@ -276,7 +320,7 @@
                 </div>
 
                 <div style="display: flex; align-items: center;">
-                    <button class="btn btn-primary" onclick="verAlunos('${turma.curso_nome}', '${turma.identificador}')">Ver Lista de Alunos</button>
+                    <button class="btn btn-primary" onclick="abrirGestaoTurma('${turmaBase64}')">⚙️ Gerir Turma</button>
                 </div>
             </div>`;
         });
@@ -284,59 +328,221 @@
         container.innerHTML = htmlFinal;
     }
 
-    async function verAlunos(cursoNome, identificadorTurma) {
-        document.getElementById('titulo-gerenciamento-alunos').innerText = `👥 Lista de Alunos: ${cursoNome} [${identificadorTurma}]`;
-        document.getElementById('painel-alunos-turma').style.display = 'block';
+    async function abrirGestaoTurma(turmaBase64) {
+        turmaAtiva = JSON.parse(decodeURIComponent(atob(turmaBase64)));
+        document.getElementById('titulo-gestao-turma').innerText = `⚙️ Gestão: ${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
+        document.getElementById('painel-gestao-turma').style.display = 'block';
         
-        const tbody = document.getElementById('tbody-alunos-matriculados');
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">A extrair dados da turma...</td></tr>';
+        document.getElementById('conteudo-lista-alunos').style.display = 'none';
+        document.getElementById('conteudo-presencas').style.display = 'none';
         
-        const stringBusca = `${cursoNome} [${identificadorTurma}]`;
-        
+        window.scrollTo({ top: document.getElementById('painel-gestao-turma').offsetTop, behavior: 'smooth' });
+
+        const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
         const { data: alunos, error } = await supa
             .from('alunos_ccp')
             .select('cpf, nome, cursos, telefone, email')
             .like('cursos', `%${stringBusca}%`)
             .order('nome');
         
-        if(error) { 
-            tbody.innerHTML = '<tr><td colspan="5">Erro ao buscar alunos da base de dados.</td></tr>'; 
-            return; 
+        if(!error && alunos) {
+            alunosTurmaAtiva = alunos.filter(a => {
+                if(!a.cursos) return false;
+                const c = a.cursos.split(' | ').map(x => x.trim());
+                return c.includes(stringBusca);
+            });
+        } else {
+            alunosTurmaAtiva = [];
         }
-        
+    }
+
+    function fecharGestaoTurma() {
+        document.getElementById('painel-gestao-turma').style.display = 'none';
+        turmaAtiva = null;
+        alunosTurmaAtiva = [];
+    }
+
+    function mostrarListaAlunos() {
+        document.getElementById('conteudo-lista-alunos').style.display = 'block';
+        document.getElementById('conteudo-presencas').style.display = 'none';
+
+        const tbody = document.getElementById('tbody-alunos-matriculados');
         tbody.innerHTML = '';
         
-        if(!alunos || alunos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Ainda não há alunos matriculados nesta turma.</td></tr>';
+        if(alunosTurmaAtiva.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nenhum aluno ativo nesta turma no momento.</td></tr>';
             return;
         }
 
         let contador = 1;
-        let totalAtivosRenderizados = 0;
+        alunosTurmaAtiva.forEach(aluno => {
+            tbody.innerHTML += `<tr>
+                <td style="text-align: center; color: var(--text-muted);">${contador}</td>
+                <td><strong>${aluno.nome}</strong></td>
+                <td>${aluno.cpf || '-'}</td>
+                <td>${aluno.telefone || '-'}</td>
+                <td>${aluno.email || '-'}</td>
+            </tr>`;
+            contador++;
+        });
+    }
 
-        alunos.forEach(aluno => {
-            if (aluno.cursos) {
-                // Quebra a string de cursos pelo separador e obriga a correspondência exata para montar a tabela
-                const cursosArray = aluno.cursos.split(' | ').map(c => c.trim());
-                if (cursosArray.includes(stringBusca)) {
-                    tbody.innerHTML += `<tr>
-                        <td style="text-align: center; color: var(--text-muted);">${contador}</td>
-                        <td><strong>${aluno.nome}</strong></td>
-                        <td>${aluno.cpf || '-'}</td>
-                        <td>${aluno.telefone || '-'}</td>
-                        <td>${aluno.email || '-'}</td>
-                    </tr>`;
-                    contador++;
-                    totalAtivosRenderizados++;
-                }
+    async function mostrarPainelPresencas() {
+        document.getElementById('conteudo-lista-alunos').style.display = 'none';
+        document.getElementById('conteudo-presencas').style.display = 'block';
+        document.getElementById('area-chamada').style.display = 'none';
+
+        const selectDatas = document.getElementById('select-data-aula');
+        selectDatas.innerHTML = '<option value="">A pesquisar aulas registadas...</option>';
+
+        if (!turmaAtiva.data_inicio || !turmaAtiva.data_fim) {
+            selectDatas.innerHTML = '<option value="">Datas não configuradas</option>';
+            alert("Aviso: A coordenação ainda não definiu a Data de Início e Término para esta turma.");
+            return;
+        }
+
+        const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
+        
+        // Busca datas que já possuem presença gravada para não listá-las novamente
+        const { data: datasGravadas, error } = await supa
+            .from('presencas')
+            .select('data_aula')
+            .eq('turma_identificador', stringBusca);
+            
+        let datasOcultas = [];
+        if (!error && datasGravadas) {
+            datasOcultas = [...new Set(datasGravadas.map(p => p.data_aula))];
+        }
+
+        const datasValidas = calcularDatasAula(turmaAtiva.data_inicio, turmaAtiva.data_fim, turmaAtiva.dia_semana);
+        
+        selectDatas.innerHTML = '<option value="">Selecione a data...</option>';
+        let totalDisponiveis = 0;
+
+        datasValidas.forEach(data => {
+            const isoDate = data.toISOString().split('T')[0];
+            
+            // Só exibe se a data não constar no banco como já gravada
+            if (!datasOcultas.includes(isoDate)) {
+                const displayDate = `${String(data.getUTCDate()).padStart(2,'0')}/${String(data.getUTCMonth()+1).padStart(2,'0')}/${data.getUTCFullYear()}`;
+                selectDatas.innerHTML += `<option value="${isoDate}">${displayDate}</option>`;
+                totalDisponiveis++;
             }
         });
 
-        if (totalAtivosRenderizados === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nenhum aluno ativo nesta turma no momento.</td></tr>';
+        if (totalDisponiveis === 0) {
+            selectDatas.innerHTML = '<option value="">Todas as aulas realizadas já foram registadas.</option>';
+        }
+    }
+
+    function calcularDatasAula(dataInicioStr, dataFimStr, diaSemana) {
+        const diasMapa = { "Domingo": 0, "Segunda": 1, "Terça": 2, "Quarta": 3, "Quinta": 4, "Sexta": 5, "Sábado": 6 };
+        const diaAlvo = diasMapa[diaSemana];
+        
+        let atual = new Date(dataInicioStr);
+        atual.setUTCHours(12, 0, 0, 0); 
+        const fim = new Date(dataFimStr);
+        fim.setUTCHours(12, 0, 0, 0);
+
+        const limiteHoje = new Date();
+        limiteHoje.setHours(23, 59, 59, 999);
+
+        let datas = [];
+        while (atual <= fim) {
+            if (atual.getUTCDay() === diaAlvo) {
+                if (atual <= limiteHoje) {
+                    datas.push(new Date(atual));
+                }
+            }
+            atual.setUTCDate(atual.getUTCDate() + 1);
+        }
+        return datas;
+    }
+
+    async function carregarChamadaData(dataSelecionada) {
+        if(!dataSelecionada) {
+            document.getElementById('area-chamada').style.display = 'none';
+            return;
         }
 
-        window.scrollTo({ top: document.getElementById('painel-alunos-turma').offsetTop, behavior: 'smooth' });
+        const tbody = document.getElementById('tbody-chamada');
+        document.getElementById('area-chamada').style.display = 'block';
+
+        tbody.innerHTML = '';
+        if(alunosTurmaAtiva.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Sem alunos nesta turma.</td></tr>';
+            return;
+        }
+
+        // Força "Presente" (P) como padrão para todos
+        alunosTurmaAtiva.forEach((aluno) => {
+            tbody.innerHTML += `
+            <tr>
+                <td><strong>${aluno.nome}</strong><br><span style="font-size: 8pt; color: var(--text-muted);">${aluno.cpf}</span></td>
+                <td>
+                    <div class="radio-group">
+                        <label><input type="radio" name="pres-${aluno.cpf}" value="P" checked> Presente</label>
+                        <label><input type="radio" name="pres-${aluno.cpf}" value="F"> Falta</label>
+                        <label><input type="radio" name="pres-${aluno.cpf}" value="FJ"> Falta Just.</label>
+                        <label><input type="radio" name="pres-${aluno.cpf}" value="A"> Atraso</label>
+                        <label><input type="radio" name="pres-${aluno.cpf}" value="SE"> Saiu Cedo</label>
+                    </div>
+                </td>
+            </tr>`;
+        });
+    }
+
+    async function salvarChamada() {
+        const dataSelecionada = document.getElementById('select-data-aula').value;
+        if(!dataSelecionada) return alert("Selecione uma data válida no calendário acima.");
+
+        const btn = document.getElementById('btn-salvar-chamada');
+        btn.innerText = "A gravar Diário...";
+        btn.disabled = true;
+
+        const stringBusca = `${turmaAtiva.curso_nome} [${turmaAtiva.identificador}]`;
+        const payloads = [];
+
+        alunosTurmaAtiva.forEach(aluno => {
+            const radios = document.getElementsByName(`pres-${aluno.cpf}`);
+            let status = null;
+            for(let r of radios) {
+                if(r.checked && r.value !== "") status = r.value;
+            }
+            if(status) {
+                payloads.push({
+                    turma_identificador: stringBusca,
+                    aluno_cpf: aluno.cpf,
+                    data_aula: dataSelecionada,
+                    status: status
+                });
+            }
+        });
+
+        try {
+            // Garante que não haja duplicidade deletando caso algum registro fantasma exista
+            await supa.from('presencas')
+                .delete()
+                .eq('turma_identificador', stringBusca)
+                .eq('data_aula', dataSelecionada);
+
+            if (payloads.length > 0) {
+                const { error } = await supa.from('presencas').insert(payloads);
+                if(error) throw error;
+            }
+
+            alert("Lista de presenças gravada com sucesso!");
+            
+            // Oculta a área de chamada e recarrega as opções de datas (removendo a data gravada)
+            document.getElementById('area-chamada').style.display = 'none';
+            await mostrarPainelPresencas();
+
+        } catch (err) {
+            alert("Ocorreu um erro ao gravar as presenças: " + err.message);
+        } finally {
+            btn.innerText = "Gravar Presenças no Diário";
+            btn.disabled = false;
+        }
     }
 </script>
 </body>
